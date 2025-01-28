@@ -95,7 +95,7 @@ def lookup_book(title):
     data = response.json()
 
     books = []
-    for doc in data.get('docs', []):
+    for doc in data.get('docs', [])[:3]:
         books.append({
             'title': doc.get('title'),
             'author': ', '.join(doc.get('author_name', [])),
@@ -132,6 +132,7 @@ def extract_and_process_book_references():
         print(f"Error: {e}")
 
 if __name__ == "__main__":
+    all_books = []
     #extract_and_process_book_references()
     with open('titles.json') as titles_file:
         titles = json.load(titles_file)
@@ -140,3 +141,7 @@ if __name__ == "__main__":
         books = lookup_book(title)
         print(json.dumps(books, indent=4))
         print("-" * 50)
+        all_books.extend(books)
+
+    with open('all_books.json', 'w') as all_books_file:
+        json.dump(all_books, all_books_file)    
