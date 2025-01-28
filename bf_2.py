@@ -2,6 +2,7 @@ from newspaper import Article
 import ollama_interface as OLLAMA
 import re
 import json
+import requests
 
 def extract_text_from_url(url):
     try:
@@ -86,12 +87,31 @@ def extract_titles_and_authors(text):
 
     return titles, authors
 
-def main():
-    #url = 'https://lexfridman.com/marc-andreessen-2-transcript'
+
+def lookup_book(title):
+    url = f"https://openlibrary.org/search.json"
+    params = {"title": title}
+    response = requests.get(url, params=params)
+    data = response.json()
+
+    books = []
+    for doc in data.get('docs', []):
+        books.append({
+            'title': doc.get('title'),
+            'author': ', '.join(doc.get('author_name', [])),
+            'first_publish_year': doc.get('first_publish_year'),
+            'ISBN': doc.get('isbn', [])[0] if doc.get('isbn') else None
+        })
+    return books
+
+
+
+def extract_and_process_book_references():
+    url = 'https://lexfridman.com/marc-andreessen-2-transcript'
     try:
-        #text = extract_text_from_url(url)
-        text = """Marc Andreessen
-(00:41:49) Yeah, yeah. So this is one of the all time great books. Incredible. About 20, 30-year-old book, but it’s completely modern and current in what it talks about as well as very deeply historically informed. So it’s called Private Truths, Public Lies, and it’s written by a social science professor named Timur Kuran, at I think Duke, and his definitive work on this. And so he has this concept, he calls Preference Falsification. And so preference falsification is two things, and you get it from the title of the book, Private Truths, Public Lies. So preference falsification is when you believe something and you can’t say it, or, and this is very important, you don’t believe something and you must say it. And the commonality there is in both cases, you’re lying. You believe something internally, and then you’re lying about it in public."""
+        text = extract_text_from_url(url)
+        #text = """Marc Andreessen
+#(00:41:49) Yeah, yeah. So this is one of the all time great books. Incredible. About 20, 30-year-old book, but it’s completely modern and current in what it talks about as well as very deeply historically informed. So it’s called Private Truths, Public Lies, and it’s written by a social science professor named Timur Kuran, at I think Duke, and his definitive work on this. And so he has this concept, he calls Preference Falsification. And so preference falsification is two things, and you get it from the title of the book, Private Truths, Public Lies. So preference falsification is when you believe something and you can’t say it, or, and this is very important, you don’t believe something and you must say it. And the commonality there is in both cases, you’re lying. You believe something internally, and then you’re lying about it in public."""
         print("Processing transcript for book references...")
         book_references = process_transcript(text)
         print("\nFound Book References:")
@@ -100,14 +120,23 @@ def main():
         concatenated_references = ' '.join(book_references)
         titles, authors = extract_titles_and_authors(concatenated_references)
         print(titles)
-        #print(authors)
+        print(authors)
         with open('titles.json', 'w') as titles_file:
             json.dump(titles, titles_file)
         
         with open('authors.json', 'w') as authors_file:
             json.dump(authors, authors_file)
+
+        
     except Exception as e:
         print(f"Error: {e}")
 
 if __name__ == "__main__":
-    main()
+    #extract_and_process_book_references()
+    with open('titles.json') as titles_file:
+        titles = json.load(titles_file)
+    for title in titles:
+        print(f"Looking up book: {title}")
+        books = lookup_book(title)
+        print(json.dumps(books, indent=4))
+        print("-" * 50)
